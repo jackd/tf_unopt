@@ -4,7 +4,7 @@
 ## Setup
 ```
 cd /path/to/parent_dir
-export PYTHONPATH=$PYTHONPATH:/path/to.parent_dir
+export PYTHONPATH=$PYTHONPATH:/path/to/parent_dir
 git clone https://github.com/jackd/tf_unopt.git
 ```
 
