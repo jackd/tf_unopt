@@ -34,10 +34,13 @@ class InnerMomentumOptimizer(InnerGradientDescentOptimizer):
         state = tuple(tf.zeros_like(xi) for xi in x)
         return state
 
-    def _update(self, x, grads, state):
+    def apply_gradients(self, grads, x, state):
+        assert_is_tensor_tuple(grads, 'grads')
+        assert_is_tensor_tuple(x, 'x')
+        assert_is_tensor_tuple(state, 'state')
         nx = len(x)
         types = (int, float, tf.Tensor, tf.Variable)
-        lrs = lrs = as_tuple(self.learning_rate, nx, types)
+        lrs = as_tuple(self.learning_rate, nx, types)
         momentums = as_tuple(self.momentum, nx, types)
         ret_state = []
         ret_x = []

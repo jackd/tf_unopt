@@ -81,7 +81,12 @@ class InnerOptimizer(object):
     The main function is `minimize`, which minimizes the function provided
     in the constructor.
 
-    Concrete derived classes must implement `step` and optionally `zero_state`.
+    Concrete derived classes must implement
+        * `apply_gradients`; and (optionally)
+        * `zero_state`.
+
+    If this constructor is not called then `get_loss` and property `name` must
+        also be implemented.
 
     Implementations:
         - `tf_unopt.gradient_descent.InnerGradientDescentOptimizer`
@@ -125,6 +130,26 @@ class InnerOptimizer(object):
     def name(self):
         return self._name
 
+    def compute_gradients(self, x):
+        """
+        Get the gradients of `f` (from constructor) for inputs `x`.
+
+        Args:
+            `x`: tuple of tensors, inputs to function `f` provided in
+                constructor.
+        Returns:
+            `grads`: tuple of tensors representing gradients of f w.r.t inputs.
+                Should be in the same order as inputs.
+        """
+        assert_is_tensor_tuple(x)
+        with tf.name_scope('inner_gradients'):
+            grads = tuple(tf.gradients(self.get_loss(x), x))
+        return grads
+
+    def apply_gradients(self, grads, x, state):
+        """Apply gradients `grads` to inputs `x` for the given `state`."""
+        raise NotImplementedError('Abstract method')
+
     def zero_state(self, x):
         """
         Get the initial state of the optimizer.
@@ -149,11 +174,12 @@ class InnerOptimizer(object):
                 match the number of arguments to `f` supplied in the
                 constructor.
             `state`: optimizer state, tuple of tensors
-
         Returns:
             `x, state`: function inputs/state with same structure as inputs
         """
-        raise NotImplementedError('Abstract method')
+        grads = self.compute_gradients(x)
+        x, state = self.apply_gradients(grads, x, state)
+        return x, state
 
     def get_loss(self, x):
         """Get the loss value associated with the function from constructor."""
@@ -264,3 +290,41 @@ class InnerOptimizer(object):
                     out = (out,)
                 x, state = unpack(out)
                 return x
+
+
+class DelegatingInnerOptimizer(InnerOptimizer):
+    """
+    Base class for InnerOptimizers based on other optimizers.
+
+    Default implementation redirects core methods:
+        * `get_loss`;
+        * `zero_state`;
+        * `compute_gradients`; and
+        * `apply_gradients`
+
+    While the class can be instantiated, its designed to be extended with
+    some of the core methods overriden.
+
+    See `MappedInnerOptimizer` for an example.
+    """
+
+    def __init__(self, base_optimizer, name):
+        """Initialize with a base optimizer and name."""
+        if not isinstance(base_optimizer, InnerOptimizer):
+            raise TypeError(
+                'base_optimizer must be an `InnerOptimizer`, '
+                'got instance of type `%s`' % type(base_optimizer))
+        self._base = base_optimizer
+        self._name = name
+
+    def get_loss(self, x):
+        return self._base.get_loss(x)
+
+    def zero_state(self, x):
+        return self._base.zero_state(x)
+
+    def compute_gradients(self, x):
+        return self._base.compute_gradients(x)
+
+    def apply_gradients(self, grads, x, state):
+        return self._base.apply_gradients(grads, x, state)

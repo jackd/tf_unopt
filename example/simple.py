@@ -11,6 +11,7 @@ sys.path.append(
 
 from tf_unopt.gradient_descent import InnerGradientDescentOptimizer  # NOQA
 from tf_unopt.momentum import InnerMomentumOptimizer  # NOQA
+from tf_unopt.mapped import MappedInnerOptimizer  # NOQA
 
 use_momentum = True
 # use_momentum = False
@@ -24,6 +25,9 @@ kwargs = dict(
     explicit_loop=False,
 )
 
+# gradient_clip_val = None
+gradient_clip_val = 0.4
+
 
 def f(x):
     r = tf.sqrt(tf.reduce_sum(tf.square(x), axis=-1))
@@ -36,6 +40,15 @@ if use_momentum:
     opt = InnerMomentumOptimizer(f, 0.2, 0.9)
 else:
     opt = InnerGradientDescentOptimizer(f, 0.2)
+
+
+if gradient_clip_val is not None:
+    def clip(grads, x, state):
+        grads = tuple(
+            tf.clip_by_value(g, -gradient_clip_val, gradient_clip_val)
+            for g in grads)
+        return grads, x, state
+    opt = MappedInnerOptimizer(opt, clip, name='clipped_%s' % opt.name)
 
 x0 = tf.constant([1.5, 1.5], dtype=tf.float32),
 n_steps = 10

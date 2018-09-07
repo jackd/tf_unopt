@@ -25,14 +25,10 @@ class InnerGradientDescentOptimizer(InnerOptimizer):
         """Getter for value provided in constructor."""
         return self._learning_rate
 
-    def step(self, x, state):
-        assert_is_tensor_tuple(x)
-        loss = self.get_loss(x)
-        grads = tf.gradients(loss, x)
-        x, state = self._update(x, grads, state)
-        return x, state
-
-    def _update(self, x, grads, state):
+    def apply_gradients(self, grads, x, state):
+        assert_is_tensor_tuple(grads, 'grads')
+        assert_is_tensor_tuple(x, 'x')
+        assert_is_tensor_tuple(state, 'state')
         types = (int, float, tf.Tensor, tf.Variable)
         lrs = as_tuple(self.learning_rate, len(x), types)
         x = tuple(xi - lr * grad for xi, lr, grad in zip(x, lrs, grads))
