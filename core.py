@@ -187,7 +187,8 @@ class InnerOptimizer(object):
 
     def minimize(
             self, x0, maximum_iterations, converged_fn=None, back_prop=True,
-            return_intermediate=True, explicit_loop=False, return_state=False):
+            return_intermediate=True, explicit_loop=False, return_state=False,
+            **loop_kwargs):
         """
         Search for a minimum to f from x0 for `maximum_iterations` steps.
 
@@ -205,6 +206,7 @@ class InnerOptimizer(object):
                 if explicit_loop is True.
             `return_state`: if True, returns both the solution(s) `x` and the
                 state.
+            `**loop_kwargs`: other kwargs passed to loop function.
 
         Returns:
             tuple of solutions, one for each value of x0.
@@ -219,13 +221,13 @@ class InnerOptimizer(object):
                 # less memory requirements when unrolled manually?
                 def while_loop(cond, body, x):
                     return explicit_for_loop(
-                        body, x, n_steps=maximum_iterations)
+                        body, x, n_steps=maximum_iterations, **loop_kwargs)
 
             else:
                 def while_loop(cond, body, x):
                     return tf.while_loop(
                         cond, body, x, maximum_iterations=maximum_iterations,
-                        back_prop=back_prop)
+                        back_prop=back_prop, **loop_kwargs)
 
             nx = len(x)
             ns = len(state)
