@@ -187,7 +187,7 @@ class InnerOptimizer(object):
 
     def minimize(
             self, x0, maximum_iterations, converged_fn=None, back_prop=True,
-            return_intermediate=True, explicit_loop=False):
+            return_intermediate=True, explicit_loop=False, return_state=False):
         """
         Search for a minimum to f from x0 for `maximum_iterations` steps.
 
@@ -203,6 +203,8 @@ class InnerOptimizer(object):
             `explicit_loop`: whether or not to explicitly loop through the
                 steps or use `tf.while_loop`. Note `converged` is not used
                 if explicit_loop is True.
+            `return_state`: if True, returns both the solution(s) `x` and the
+                state.
 
         Returns:
             tuple of solutions, one for each value of x0.
@@ -259,7 +261,10 @@ class InnerOptimizer(object):
                     cond, body,
                     pack(x, state, solutions, 0))
                 x, state, solutions, i = unpack(out)
-                return solutions
+                if return_state:
+                    return solutions, state
+                else:
+                    return solutions
             else:
 
                 def unpack(args):
@@ -289,7 +294,10 @@ class InnerOptimizer(object):
                 if isinstance(out, tf.Tensor):
                     out = (out,)
                 x, state = unpack(out)
-                return x
+                if return_state:
+                    return x, state
+                else:
+                    return x
 
 
 class DelegatingInnerOptimizer(InnerOptimizer):

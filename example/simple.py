@@ -25,8 +25,9 @@ kwargs = dict(
     explicit_loop=False,
 )
 
-# gradient_clip_val = None
-gradient_clip_val = 0.4
+gradient_clip_val = None
+# gradient_clip_val = 0.4
+decay = 0.9
 
 
 def f(x):
@@ -56,6 +57,12 @@ n_steps = 10
 sol, = opt.minimize(x0, **kwargs)
 if kwargs['return_intermediate']:
     sol = sol.stack()
+    sol.set_shape((n_steps, 2))
+    loss = f(x0)
+    for s in tf.unstack(sol, axis=0):
+        loss = loss * decay + f(s)
+else:
+    loss = f(sol)
 
 grid = tf.meshgrid(
     tf.linspace(-2.0, 2.0, 51), tf.linspace(-2.0, 2.0, 51), indexing='ij')
@@ -66,7 +73,10 @@ sol_vals = f(sol)
 
 
 with tf.Session() as sess:
-    g, f, f0, s, sv = sess.run((grid, f_vals, f0_val, sol, sol_vals))
+    g, f, f0, s, sv, lv = sess.run((grid, f_vals, f0_val, sol, sol_vals, loss))
+
+
+print('loss: %s' % str(lv))
 
 
 def vis(g, f, f0, s, sv):
