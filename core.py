@@ -111,9 +111,10 @@ class InnerOptimizer(object):
         The function `f` should take any number of tensor arguments. It should
         *not* create any variables. Functions which do create variables should
         either be refactored to remove variable creation from the function
-        call itself, or be wrapped in `tf.make_template` prior to use in this
-        constructor. No error will be raised if not, but no guarantees are made
-        about the behaviour of calls in this function is this is the case.
+        call itself, or be wrapped in `tf.variable_scope` with
+        `reuse=tf.AUTO_REUSE` prior to use in this constructor. No error will
+        be raised if not, but no guarantees are made about the behaviour of
+        calls in this function is this is the case.
 
         Args:
             `f`: tensorflow function mapping any number of tensor arguments

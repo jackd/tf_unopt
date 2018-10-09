@@ -57,13 +57,14 @@ def denoise_image(noisy_image, n_steps=3):
     """
 
     def f(image):
-        weight = tf.get_variable(
-            'learned_weighting', dtype=tf.float32, initializer=1.0)
-        return change_loss(image, noisy_image) + \
-            weight*get_learned_loss_network(image)
+        with tf.variable_scope('spen_loss', reuse=tf.AUTO_REUSE):
+            weight = tf.get_variable(
+                    'learned_weighting', dtype=tf.float32, initializer=1.0)
+            loss = change_loss(image, noisy_image) + \
+                weight*get_learned_loss_network(image)
+        return loss
 
-    fn = tf.make_template('spen_loss', f)
-    optimizer = get_inner_optimizer(fn)
+    optimizer = get_inner_optimizer(f)
     sol, = optimizer.minimize(
         (noisy_image,),
         maximum_iterations=n_steps,
