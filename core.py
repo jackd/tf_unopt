@@ -226,9 +226,22 @@ class InnerOptimizer(object):
 
             else:
                 def while_loop(cond, body, x):
-                    return tf.while_loop(
-                        cond, body, x, maximum_iterations=maximum_iterations,
+                    # more verbose than using maximum_iterations
+                    # but compatible with older versions of tensorflow.
+                    step = 0
+
+                    def cond2(step, *args):
+                        return tf.logical_or(
+                            cond(*args), step == maximum_iterations)
+
+                    def body2(step, *args):
+                        return (step + 1,) + tuple(body(*args))
+
+                    out = tf.while_loop(
+                        # cond, body, x, maximum_iterations=maximum_iterations,
+                        cond2, body2, (step,) + x,
                         back_prop=back_prop, **loop_kwargs)
+                    return out[1:]
 
             nx = len(x)
             ns = len(state)
