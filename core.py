@@ -232,7 +232,7 @@ class InnerOptimizer(object):
 
                     def cond2(step, *args):
                         return tf.logical_or(
-                            cond(*args), step == maximum_iterations)
+                            cond(*args), step < maximum_iterations)
 
                     def body2(step, *args):
                         return (step + 1,) + tuple(body(*args))
