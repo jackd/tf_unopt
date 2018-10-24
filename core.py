@@ -225,23 +225,32 @@ class InnerOptimizer(object):
                         body, x, n_steps=maximum_iterations, **loop_kwargs)
 
             else:
-                def while_loop(cond, body, x):
-                    # more verbose than using maximum_iterations
-                    # but compatible with older versions of tensorflow.
-                    step = 0
+                major, minor, patch = tf.__version__.split('.')
+                major, minor = int(major), int(minor)
+                if major > 1 or major == 1 and minor > 4:
+                    def while_loop(cond, body, x):
+                        return tf.while_loop(
+                            cond, body, x,
+                            maximum_iterations=maximum_iterations,
+                            back_prop=back_prop, **loop_kwargs)
+                else:
+                    def while_loop(cond, body, x):
+                        # no maximum_
+                        # more verbose than using maximum_iterations
+                        # but compatible with older versions of tensorflow.
+                        step = 0
 
-                    def cond2(step, *args):
-                        return tf.logical_or(
-                            cond(*args), step < maximum_iterations)
+                        def cond2(step, *args):
+                            return tf.logical_and(
+                                cond(*args), step < maximum_iterations)
 
-                    def body2(step, *args):
-                        return (step + 1,) + tuple(body(*args))
+                        def body2(step, *args):
+                            return (step + 1,) + tuple(body(*args))
 
-                    out = tf.while_loop(
-                        # cond, body, x, maximum_iterations=maximum_iterations,
-                        cond2, body2, (step,) + x,
-                        back_prop=back_prop, **loop_kwargs)
-                    return out[1:]
+                        out = tf.while_loop(
+                            cond2, body2, (step,) + x,
+                            back_prop=back_prop, **loop_kwargs)
+                        return out[1:]
 
             nx = len(x)
             ns = len(state)
